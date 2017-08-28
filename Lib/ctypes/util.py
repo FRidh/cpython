@@ -88,28 +88,7 @@ elif os.name == "posix":
     import re, tempfile
 
     def _findLib_gcc(name):
-        expr = r'[^\(\)\s]*lib%s\.[^\(\)\s]*' % re.escape(name)
-        fdout, ccout = tempfile.mkstemp()
-        os.close(fdout)
-        cmd = 'if type gcc >/dev/null 2>&1; then CC=gcc; elif type cc >/dev/null 2>&1; then CC=cc;else exit 10; fi;' \
-              'LANG=C LC_ALL=C $CC -Wl,-t -o ' + ccout + ' 2>&1 -l' + name
-        try:
-            f = os.popen(cmd)
-            try:
-                trace = f.read()
-            finally:
-                rv = f.close()
-        finally:
-            try:
-                os.unlink(ccout)
-            except FileNotFoundError:
-                pass
-        if rv == 10:
-            raise OSError('gcc or cc command not found')
-        res = re.search(expr, trace)
-        if not res:
-            return None
-        return res.group(0)
+        return None
 
 
     if sys.platform == "sunos5":
@@ -200,34 +179,7 @@ elif os.name == "posix":
     else:
 
         def _findSoname_ldconfig(name):
-            import struct
-            if struct.calcsize('l') == 4:
-                machine = os.uname().machine + '-32'
-            else:
-                machine = os.uname().machine + '-64'
-            mach_map = {
-                'x86_64-64': 'libc6,x86-64',
-                'ppc64-64': 'libc6,64bit',
-                'sparc64-64': 'libc6,64bit',
-                's390x-64': 'libc6,64bit',
-                'ia64-64': 'libc6,IA-64',
-                }
-            abi_type = mach_map.get(machine, 'libc6')
-
-            # XXX assuming GLIBC's ldconfig (with option -p)
-            regex = os.fsencode(
-                '\s+(lib%s\.[^\s]+)\s+\(%s' % (re.escape(name), abi_type))
-            try:
-                with subprocess.Popen(['/sbin/ldconfig', '-p'],
-                                      stdin=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL,
-                                      stdout=subprocess.PIPE,
-                                      env={'LC_ALL': 'C', 'LANG': 'C'}) as p:
-                    res = re.search(regex, p.stdout.read())
-                    if res:
-                        return os.fsdecode(res.group(1))
-            except OSError:
-                pass
+            return None
 
         def find_library(name):
             return _findSoname_ldconfig(name) or _get_soname(_findLib_gcc(name))
